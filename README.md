@@ -1,59 +1,63 @@
 # context-stash
 
-**Save and restore conversation context bookmarks in Claude Code — like `git stash` for your sessions.**
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet)](https://claude.ai/code)
 
-## What This Does
+**`git stash` for Claude Code sessions.** Save your place, switch tasks, come back later.
 
-When you're deep in a task and need to context-switch (investigate a bug, answer a question, help a colleague), `context-stash` lets you save a structured bookmark of your current work and restore it later.
+---
 
-### What It Saves
+## Why?
 
-- Working directory path
-- Git state (branch, commit SHA, dirty/clean, remote URL)
-- Key files you were working on
-- Todo list with statuses
-- A text summary of your current work
+Every time you context-switch mid-session — a production bug, a teammate's question, a quick PR review — you lose all the accumulated context Claude has built up. Starting a new session means re-reading files, re-explaining your approach, and re-building the todo list from scratch.
 
-### What It Does NOT Save
+`context-stash` gives you a `/push` and `/pop` for your sessions, so you can bookmark where you are and pick it back up later.
 
-- Conversation history or message content
-- The model's internal reasoning state
-- In-flight analysis or accumulated understanding
-- Any data beyond the structured fields above
+## Quick Start
+
+```bash
+git clone https://github.com/anthropics/context-stash ~/.claude/plugins/local/context-stash
+```
+
+Then in any Claude Code session:
+
+```
+/push refactor-auth       # save your place
+# ... go do something else ...
+/pop refactor-auth        # pick up where you left off
+```
+
+## What Gets Saved
+
+| Saved | Not Saved |
+|-------|-----------|
+| Working directory path | Conversation history |
+| Git state (branch, SHA, dirty/clean) | Model's reasoning state |
+| Key files you were editing | In-flight analysis |
+| Todo list with statuses | Accumulated understanding |
+| Free-text summary of your work | |
 
 **This is a structured bookmark, not a session snapshot.** Restoring a stash is like reading a colleague's detailed handoff notes — helpful, but not the same as resuming a paused session.
 
-## Installation
-
-Clone or symlink into your Claude Code plugins directory:
-
-```bash
-# Option 1: Clone directly
-git clone https://github.com/yourname/context-stash ~/.claude/plugins/local/context-stash
-
-# Option 2: Symlink from your dev directory
-ln -s /path/to/context-stash ~/.claude/plugins/local/context-stash
-```
-
-## Usage
+## Commands
 
 ### `/push [name]` — Save Context
 
 ```
 /push refactor-auth
+/push                     # auto-generates a name from your summary
 ```
 
-Captures your current working context and saves it to `~/.claude/stash/refactor-auth.json`. You'll be prompted to provide a summary and confirm which files you were working on.
-
-If you omit the name, one is auto-generated from your summary.
+Captures your current working context and saves it to `~/.claude/stash/<name>.json`. You'll be prompted to provide a summary and confirm which files you were working on.
 
 ### `/pop [name]` — Restore Context
 
 ```
 /pop refactor-auth
+/pop                      # restores the most recent stash
 ```
 
-Restores the named bookmark: displays the summary, recreates your todo list, shows key files, and reports git state changes since the push. If you omit the name, the most recent stash is restored.
+Restores the named bookmark: displays the summary, recreates your todo list, shows key files, and reports git state changes since the push.
 
 After restoring, you'll be asked whether to keep or remove the stash file.
 
@@ -66,9 +70,32 @@ After restoring, you'll be asked whether to keep or remove the stash file.
 
 Lists all saved bookmarks with age, summary, and security audit (permission checks, staleness warnings). Use `--delete` to remove specific entries.
 
+### Proactive Suggestions
+
+The plugin also includes a context-awareness skill that detects task-switching signals ("switch to", "before I forget", "park this") and gently suggests `/push` before you lose context. It won't block you — just a nudge.
+
+## How It Compares
+
+| | context-stash | `/fork` | `/compact` |
+|---|---|---|---|
+| **Purpose** | Save your place, come back later | Branch into parallel work | Free up context window |
+| **Cross-session** | Yes | No | No |
+| **Preserves history** | No (structured bookmark) | Yes (full conversation) | No (irreversible compression) |
+| **Modifies session** | No | Yes (creates new branch) | Yes (compresses messages) |
+
+## Installation
+
+```bash
+# Option 1: Clone directly
+git clone https://github.com/anthropics/context-stash ~/.claude/plugins/local/context-stash
+
+# Option 2: Symlink from your dev directory
+ln -s /path/to/context-stash ~/.claude/plugins/local/context-stash
+```
+
 ## Stash File Format
 
-Each bookmark is stored as a JSON file at `~/.claude/stash/<name>.json`:
+Each bookmark is stored as JSON at `~/.claude/stash/<name>.json`:
 
 ```json
 {
@@ -98,92 +125,45 @@ Each bookmark is stored as a JSON file at `~/.claude/stash/<name>.json`:
 
 ---
 
-## Security and Privacy Warnings
+## Security and Privacy
 
-> **Read this section carefully before using context-stash.**
+> **Read this section before using context-stash.**
 
-### 1. Stash Files Contain Sensitive Context
+### Stash Files Contain Sensitive Context
 
-Every stash file records your working directory path, git branch names, commit SHAs, remote repository URLs, file paths, and a free-text summary of your work. This metadata reveals:
+Every stash file records directory paths, git branch names, commit SHAs, remote URLs, file paths, and a free-text summary. This metadata reveals what you're working on and how your projects are structured.
 
-- What projects you're working on
-- What features or bugs you're addressing
-- Your repository structure and internal file organization
-- Your git remote URLs (which may be private repositories)
+### File Permissions Are a Floor, Not a Ceiling
 
-### 2. File Permissions Are Necessary But Not Sufficient
+Stash files are created with `chmod 600` and the directory with `chmod 700`. This protects against other OS users, but any process running as your user can still read them.
 
-Stash files are created with `chmod 600` (owner read/write only) and the stash directory with `chmod 700`. This protects against other OS users reading your files.
+### Cloud Sync Risk
 
-**However**, any process running as your OS user — including malware, compromised npm packages, browser extensions with filesystem access, or rogue scripts — can read files with these permissions. File permissions are a floor, not a ceiling.
+If `~/.claude/` is within a folder synced by iCloud, Dropbox, Google Drive, or OneDrive, your stash files will be uploaded. Exclude `~/.claude/stash/` from cloud sync.
 
-### 3. Cloud Sync May Exfiltrate Stash Files
+### No Encryption at Rest
 
-If your `~/.claude/` directory is within a folder synced by iCloud, Dropbox, Google Drive, OneDrive, or similar services, your stash files will be uploaded to those cloud providers.
+Stash files are plaintext JSON. Use full-disk encryption (FileVault, LUKS) if you need encryption at rest.
 
-**Recommended mitigations:**
+### Old Stashes Accumulate Risk
 
-- Exclude `~/.claude/stash/` from cloud sync
-- For iCloud on macOS: move `~/.claude/` outside of `~/Library/Mobile Documents/` or add to exclusion list
-- For Dropbox: use Selective Sync to exclude `~/.claude/stash/`
-- For Google Drive: ensure `~/.claude/` is not within your synced folder
-
-### 4. Restoration Is Lossy — Expect Degraded Context
-
-When you `/pop` a stash, the model receives a structured summary of your previous work. It does **not** receive:
-
-- The original conversation that built up its understanding
-- The specific reasoning chain that led to your current approach
-- Nuances and context from tool results during the original session
-
-The model will do its best to pick up where you left off, but it is working from handoff notes, not from memory. You should expect to re-read key files and re-explain nuances.
-
-### 5. Old Stash Files Are a Liability
-
-Stash files do not expire automatically. Over time, they accumulate a history of your work: which projects, which branches, which files, what you were thinking. This is a data exposure risk that grows with time.
-
-**Recommendations:**
-
-- Regularly audit stashes with `/stash-list`
-- Delete stashes you no longer need: `/stash-list --delete <name>`
-- Pay attention to `[stale]` and `[OLD]` warnings
-- Consider periodic cleanup as a habit (e.g., weekly)
-
-### 6. No Encryption At Rest
-
-Stash files are stored as plaintext JSON. They are not encrypted. If you require encryption at rest, consider:
-
-- Using full-disk encryption (FileVault on macOS, LUKS on Linux)
-- Wrapping the stash directory with an encrypted volume
-- Filing a feature request for optional `age`/`gpg` encryption support
+Stash files don't expire. Audit regularly with `/stash-list` and delete what you no longer need.
 
 ---
 
 ## FAQ
 
-### How is this different from `/fork`?
-
-`/fork` creates a new, independent conversation branch. You end up with two separate sessions. `context-stash` saves a bookmark from your current session and lets you restore it in any future session — the intent is "save my place and come back" rather than "branch into parallel work."
-
-### How is this different from `/compact`?
-
-`/compact` compresses your conversation history irreversibly to free up context window space. `context-stash` saves structured metadata externally to disk without modifying your current session.
-
 ### Why is `/pop` lossy?
 
-An LLM's "understanding" is built up through the sequence of messages in a conversation. Skills and commands cannot access the internal message history or model state. The stash captures observable metadata (files, git state, todos, summary) but not the accumulated reasoning. This is a fundamental limitation of the skill system, not a bug.
-
-### Can someone steal my context?
-
-Anyone or anything with read access to `~/.claude/stash/` can read your stash files. This includes: other processes running as your user, cloud sync services, backup tools, and anyone with physical access to your machine. See the Security section above for mitigations.
-
-### What happens if I push but never pop?
-
-The stash file sits on disk indefinitely. It does not expire. Use `/stash-list` periodically to audit and clean up old entries.
+An LLM's understanding is built through the sequence of messages in a conversation. The plugin system cannot access internal message history or model state. The stash captures observable metadata (files, git state, todos, summary) but not accumulated reasoning. This is a fundamental limitation, not a bug.
 
 ### Can I use this across machines?
 
-The stash files are portable JSON, but the paths inside them (cwd, key_files) are absolute and machine-specific. Popping a stash from a different machine will show path warnings for files that don't exist at those locations.
+The stash files are portable JSON, but paths inside them are absolute and machine-specific. Popping a stash from a different machine will show warnings for files that don't exist at those locations.
+
+### What happens if I push but never pop?
+
+The stash file sits on disk indefinitely. Use `/stash-list` periodically to clean up.
 
 ## Contributing
 
