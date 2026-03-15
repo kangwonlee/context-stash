@@ -1,0 +1,16 @@
+{
+  "name": "context-stash",
+  "version": "1.0.0",
+  "description": "Save and restore conversation context bookmarks to disk — like git stash for Claude Code sessions. Captures working directory, git state, todo list, key files, and a work summary as structured bookmarks that persist across sessions.",
+  "license": "MIT",
+  "keywords": [
+    "context",
+    "stash",
+    "push",
+    "pop",
+    "session",
+    "bookmark",
+    "productivity",
+    "context-switch"
+  ]
+}
