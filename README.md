@@ -16,7 +16,7 @@ Every time you context-switch mid-session — a production bug, a teammate's que
 ## Quick Start
 
 ```bash
-git clone https://github.com/anthropics/context-stash ~/.claude/plugins/local/context-stash
+git clone https://github.com/kangwonlee/context-stash ~/.claude/plugins/local/context-stash
 ```
 
 Then in any Claude Code session:
@@ -87,7 +87,7 @@ The plugin also includes a context-awareness skill that detects task-switching s
 
 ```bash
 # Option 1: Clone directly
-git clone https://github.com/anthropics/context-stash ~/.claude/plugins/local/context-stash
+git clone https://github.com/kangwonlee/context-stash ~/.claude/plugins/local/context-stash
 
 # Option 2: Symlink from your dev directory
 ln -s /path/to/context-stash ~/.claude/plugins/local/context-stash
